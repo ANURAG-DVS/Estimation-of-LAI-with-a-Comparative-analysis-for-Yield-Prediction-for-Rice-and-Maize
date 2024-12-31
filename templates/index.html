@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predict Crop and LAI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: #2d3748;
+        }
+
+        .form-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        input[type="file"] {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #e2e8f0;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #3182ce;
+        }
+
+        #result {
+            margin-top: 30px;
+            font-size: 1.2rem;
+            color: #2d3748;
+        }
+
+        #result p {
+            margin: 10px 0;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .form-container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
+            button {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Crop and LAI Prediction</h1>
+    <div class="form-container">
+        <form id="upload-form" action="/predict" method="POST" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*" required aria-label="Upload an image for prediction">
+            <button type="submit" aria-label="Submit for prediction">Predict</button>
+        </form>
+    </div>
+    <div id="result"></div>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();  // Prevent the form from submitting the traditional way
+            
+            const formData = new FormData(form);
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Processing... Please wait.</p>';  // Show loading indicator
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    resultDiv.innerHTML = `
+                        <p><strong>Predicted Crop:</strong> ${result.predicted_crop}</p>
+                        <p><strong>LAI Prediction:</strong> ${result.lai_prediction}</p>
+                        <p><strong>Average Yield:</strong> ${result.reference_yield}</p>
+                        <p><strong>Predicted Yield:</strong> ${result.predicted_yield}</p>
+                        <p><img src="${result.graph}" alt="Yield trends graph"/></p>
+                    `;
+                } else {
+                    const error = await response.json();
+                    resultDiv.innerHTML = `<p style="color:red;">Error: ${error.error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color:red;">An error occurred while processing the image.</p>`;
+            }
+        });
+
+        // Validate file input
+        const fileInput = form.querySelector('input[type="file"]');
+        fileInput.addEventListener('change', () => {
+            if (!fileInput.files[0].type.startsWith('image/')) {
+                alert('Please upload a valid image file.');
+                fileInput.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
